@@ -20,12 +20,12 @@ class Engine:
         if board.is_gameover() or depth >= self.level:
             return self.evaluate_board(board, depth), None
 
-        if ai_turn:
+        if not ai_turn:
             max_eval = float('-inf')
             best_move = None
             for move in available_moves:
                 board.push(move, self.ai)
-                eval_ = self.minimax(board, False, depth + 1, alpha, beta)[0]
+                eval_ = self.minimax(board, True, depth + 1, alpha, beta)[0]
                 board.undo(move)
                 max_eval = max(max_eval, eval_)
                 if max_eval == eval_:
@@ -39,7 +39,7 @@ class Engine:
             best_move = None
             for move in available_moves:
                 board.push(move, self.foe)
-                eval_ = self.minimax(board, True, depth + 1, alpha, beta)[0]
+                eval_ = self.minimax(board, False, depth + 1, alpha, beta)[0]
                 board.undo(move)
                 min_eval = min(min_eval, eval_)
                 if min_eval == eval_:
@@ -51,12 +51,19 @@ class Engine:
 
     def evaluate_board(self, board: Board, depth: int) -> Score:
         if board.winner() == self.ai:
-            return board.size**2 - depth
-        elif board.winner() == self.foe:
             return -1 * board.size**2 - depth
+        elif board.winner() == self.foe:
+            return board.size**2 - depth
         return 0
 
     def evaluate_best_move(self, board: Board) -> Square:
+
+        opponent_winning_connections = board.get_win_conditions()
+        for winning_connection in opponent_winning_connections:
+            if all([board.square_value(square) == self.foe for square in winning_connection]):
+                # The AI player is losing.
+                return None
+
         best_move = self.minimax(board, True, 0, float('-inf'),
                                  float('inf'))[1]
         return best_move
